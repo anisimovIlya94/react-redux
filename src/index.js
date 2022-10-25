@@ -1,35 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { initiateStore } from "./store/store";
-import * as actions from "./store/actions";
+import { Provider, useDispatch, useSelector } from "react-redux";
+import { getError } from "./store/errors";
+import createStore from "./store/store";
+import { titleUpdated, taskDeleted, completeTask, loadTasks, getTasks, getTasksLoadingStatus, createTask } from "./store/task";
 
-const store = initiateStore();
+const store = createStore();
 
 const App = () => {
-  const [state, setState] = useState(store.getState());
-  const completeTask = (taskId) => {
-    store.dispatch(actions.taskChanged(taskId));
-  };
+  const state = useSelector(getTasks());
+  const isLoading = useSelector(getTasksLoadingStatus());
+  const error = useSelector(getError());
+  const dispatch = useDispatch();
+
   const updateTitle = (taskId) => {
-    store.dispatch(actions.titleUpdated(taskId));
+    dispatch(titleUpdated(taskId));
   };
   const deleteTask = (taskId) => {
-    store.dispatch(actions.taskDeleted(taskId));
+    dispatch(taskDeleted(taskId));
   };
   useEffect(() => {
-    store.subscribe(() => {
-      setState(store.getState());
-    });
+    dispatch(loadTasks())
   }, []);
+
+  if (isLoading) {
+    return <h1>Loading...</h1>
+  }
+  if (error) {
+    return <p>{error}</p>
+  }
   return (
     <>
       <h1>App</h1>
+      <button onClick={() => dispatch(createTask())}>Add new task</button>
       <ul>
         {state.map((el) => (
           <li key={el.id}>
             <p>{el.title}</p>
             <p>{`Completed: ${el.completed}`}</p>
-            <button onClick={() => completeTask(el.id)}>Complete</button>
+            <button onClick={() => dispatch(completeTask(el.id))}>Complete</button>
             <button onClick={() => updateTitle(el.id)}>Change Title</button>
             <button onClick={() => deleteTask(el.id)}>Delete task</button>
             <hr />
@@ -43,6 +52,8 @@ const App = () => {
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <App />
+    <Provider store={store}>
+      <App />
+      </Provider>
   </React.StrictMode>
 );
